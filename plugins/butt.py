@@ -1,33 +1,45 @@
 from util import hook
-import sys
-sys.path += ['..'] # heh
+from butter import butter
 
-import buttifier
-import grammar
-import prob
+import itertools
+import math
 import random
 import time
+
+def poissonvariate(lambd):
+    x = random.random()
+
+    # special-case i = 0
+    coeff = math.exp(-lambd)
+    factorial = 1.0
+    x -= coeff
+    if x < 0: return 0
+
+    # i = (1, 2, ...)
+    for i in itertools.count(1):
+        factorial *= i
+        x -= coeff * (lambd**i/factorial)
+        if x < 0: return i
 
 @hook.command
 def butt(msg, me=None):
     try:
-        return buttifier.buttify(msg, min_words=1)
+        return butter.buttify(msg, min_words=1)
     except:
         me("can't butt the unbuttable!")
         raise
 
 @hook.command
 def debutt(msg, me=None):
-    sent = grammar.Sentence(msg)
-    score = buttifier.Scorer(sent)
+    sent, score = butter.score_sentence(msg)
     result = ''
 
-    result += '{0}:'.format(score.sentence())
+    result += '{0}: '.format(score.sentence())
     for i, word in enumerate(sent):
         if score.word(i) == 0:
-            result += '-'.join(word) + '(0)'
+            result += '-'.join(word) + '(0) '
         else:
-            result += '-'.join(word) + '({0}: {1})'.format(
+            result += '-'.join(word) + '({0}: {1}) '.format(
                 score.word(i), score.syllable(i))
     return result
 
@@ -56,19 +68,19 @@ def autobutt(_, chan=None, msg=None, bot=None, say=None):
             if state.next_time > now:
                 return
 
-            sent, score = buttifier.score_sentence(msg)
+            sent, score = butter.score_sentence(msg)
 
             if score.sentence() == 0 or score.sentence() < state.lines_left:
                 return
 
-            say(buttifier.buttify_sentence(sent, score))
+            say(butter.buttify_sentence(sent, score))
 
         channel_states[chan] = ChannelState(
             random.normalvariate(rate_mean, rate_sigma) + now,
-            prob.poissonvariate(lines_mean)
+            poissonvariate(lines_mean)
         )
     else: # private message
         try:
-            say(buttifier.buttify(msg))
+            say(butter.buttify(msg))
         except:
             pass
