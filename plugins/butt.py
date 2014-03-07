@@ -23,6 +23,8 @@ def poissonvariate(lambd):
 
 @hook.command
 def butt(msg, me=None):
+    """.butt <text> -- buttifies a line of text"""
+
     try:
         return butter.buttify(msg, min_words=1)
     except:
@@ -31,6 +33,8 @@ def butt(msg, me=None):
 
 @hook.command
 def debutt(msg, me=None):
+    """.debutt <text> -- provides debug butting info for a line of text"""
+
     sent, score = butter.score_sentence(msg)
     result = ''
 
@@ -54,7 +58,7 @@ channel_states = {}
 @hook.singlethread
 @hook.event('PRIVMSG')
 def autobutt(_, chan=None, msg=None, bot=None, say=None):
-    butt_config = bot.config['butt'] or {}
+    butt_config = bot.config.get('butt', {})
     rate_mean  = butt_config.get('rate_mean', 300)
     rate_sigma = butt_config.get('rate_sigma', 60)
     lines_mean = butt_config.get('lines_mean', 20)
