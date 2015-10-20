@@ -1,19 +1,16 @@
 import re
 import socket
 import time
-import thread
-import Queue
+try:
+    import thread
+except ImportError:
+    import _thread as thread
+try:
+    import Queue as queue
+except ImportError:
+    import queue
 
 from ssl import wrap_socket, CERT_NONE, CERT_REQUIRED, SSLError
-
-
-def decode(txt):
-    for codec in ('utf-8', 'iso-8859-1', 'shift_jis', 'cp1252'):
-        try:
-            return txt.decode(codec)
-        except UnicodeDecodeError:
-            continue
-    return txt.decode('utf-8', 'ignore')
 
 
 def censor(text):
@@ -31,8 +28,8 @@ class crlf_tcp(object):
     def __init__(self, host, port, timeout=300):
         self.ibuffer = ""
         self.obuffer = ""
-        self.oqueue = Queue.Queue()  # lines to be sent out
-        self.iqueue = Queue.Queue()  # lines that were received
+        self.oqueue = queue.Queue()  # lines to be sent out
+        self.iqueue = queue.Queue()  # lines that were received
         self.socket = self.create_socket()
         self.host = host
         self.port = port
@@ -64,7 +61,7 @@ class crlf_tcp(object):
         while True:
             try:
                 data = self.recv_from_socket(4096)
-                self.ibuffer += data
+                self.ibuffer += data.decode()
                 if data:
                     last_timestamp = time.time()
                 else:
@@ -80,15 +77,15 @@ class crlf_tcp(object):
 
             while '\r\n' in self.ibuffer:
                 line, self.ibuffer = self.ibuffer.split('\r\n', 1)
-                self.iqueue.put(decode(line))
+                self.iqueue.put(line)
 
     def send_loop(self):
         while True:
             line = self.oqueue.get().splitlines()[0][:500]
-            print ">>> %r" % line
-            self.obuffer += line.encode('utf-8', 'replace') + '\r\n'
+            print(">>> %r" % line)
+            self.obuffer += line.decode() + '\r\n'
             while self.obuffer:
-                sent = self.socket.send(self.obuffer)
+                sent = self.socket.send(self.obuffer.encode())
                 self.obuffer = self.obuffer[sent:]
 
 
@@ -104,7 +101,7 @@ class crlf_ssl_tcp(crlf_tcp):
                 CERT_REQUIRED)
 
     def recv_from_socket(self, nbytes):
-        return self.socket.read(nbytes)
+        return self.socket.read(nbytes.decode())
 
     def get_timeout_exception_type(self):
         return SSLError
@@ -131,7 +128,7 @@ class IRC(object):
         self.port = port
         self.nick = nick
 
-        self.out = Queue.Queue()  # responses from the server are placed here
+        self.out = queue.Queue()  # responses from the server are placed here
         # format: [rawline, prefix, command, params,
         # nick, user, host, paramlist, msg]
         self.connect()
@@ -194,8 +191,8 @@ class IRC(object):
         else:
             self.send(command)
 
-    def send(self, str):
-        self.conn.oqueue.put(str)
+    def send(self, s):
+        self.conn.oqueue.put(s.encode())
 
 
 class FakeIRC(IRC):
@@ -206,7 +203,7 @@ class FakeIRC(IRC):
         self.port = port
         self.nick = nick
 
-        self.out = Queue.Queue()  # responses from the server are placed here
+        self.out = queue.Queue()  # responses from the server are placed here
 
         self.f = open(fn, 'rb')
 
@@ -214,10 +211,10 @@ class FakeIRC(IRC):
 
     def parse_loop(self):
         while True:
-            msg = decode(self.f.readline()[9:])
+            msg = self.f.readline()[9:]
 
             if msg == '':
-                print "!!!!DONE READING FILE!!!!"
+                print("!!!!DONE READING FILE!!!!")
                 return
 
             if msg.startswith(":"):  # has a prefix

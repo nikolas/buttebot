@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 
 import os
-import Queue
+try:
+    import Queue as queue
+except ImportError:
+    import queue
 import sys
 import time
 
@@ -16,7 +19,7 @@ class Bot(object):
 
 bot = Bot()
 
-print 'Loading plugins'
+print('Loading plugins')
 
 # bootstrap the reloader
 eval(compile(open(os.path.join('core', 'reload.py'), 'U').read(),
@@ -27,12 +30,12 @@ config()
 if not hasattr(bot, 'config'):
     exit()
 
-print 'Connecting to IRC'
+print('Connecting to IRC')
 
 bot.conns = {}
 
 try:
-    for name, conf in bot.config['connections'].iteritems():
+    for name, conf in bot.config['connections'].items():
         if conf.get('ssl'):
             bot.conns[name] = SSLIRC(conf['server'], conf['nick'], conf=conf,
                     port=conf.get('port', 6667), channels=conf['channels'],
@@ -40,25 +43,25 @@ try:
         else:
             bot.conns[name] = IRC(conf['server'], conf['nick'], conf=conf,
                     port=conf.get('port', 6667), channels=conf['channels'])
-except Exception, e:
-    print 'ERROR: malformed config file', e
+except (Exception, e):
+    print('ERROR: malformed config file', e)
     sys.exit()
 
 bot.persist_dir = os.path.abspath('persist')
 if not os.path.exists(bot.persist_dir):
     os.mkdir(bot.persist_dir)
 
-print 'Running main loop'
+print('Running main loop')
 
 while True:
     reload()  # these functions only do things
     config()  # if changes have occured
 
-    for conn in bot.conns.itervalues():
+    for conn in bot.conns.values():
         try:
             out = conn.out.get_nowait()
             main(conn, out)
-        except Queue.Empty:
+        except queue.Empty:
             pass
-    while all(conn.out.empty() for conn in bot.conns.itervalues()):
+    while all(conn.out.empty() for conn in bot.conns.values()):
         time.sleep(.1)

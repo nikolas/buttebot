@@ -1,13 +1,30 @@
 # convenience wrapper for urllib2 & friends
 
-import cookielib
+try:
+    import cookielib as cookiejar
+except ImportError:
+    import http.cookiejar as cookiejar
 import json
 import urllib
-import urllib2
-import urlparse
+try:
+    import urllib2
+except ImportError:
+    import urllib.request as urllib2
 
-from urllib import quote, quote_plus as _quote_plus
-from urllib2 import HTTPError, URLError
+try:
+    import urlparse
+except ImportError:
+    import urllib.parse as urlparse
+
+try:
+    from urllib import quote, quote_plus as _quote_plus
+except ImportError:
+    from urllib.parse import quote, quote_plus as _quote_plus
+
+try:
+    from urllib2 import HTTPError, URLError
+except ImportError:
+    from urllib.error import HTTPError, URLError
 
 from lxml import etree, html
 
@@ -18,7 +35,7 @@ ua_firefox = 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.6) ' \
     'Gecko/20070725 Firefox/2.0.0.6'
 ua_internetexplorer = 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1)'
 
-jar = cookielib.CookieJar()
+jar = cookiejar.CookieJar()
 
 
 def get(*args, **kwargs):
@@ -72,7 +89,7 @@ def prepare_url(url, queries):
         query = dict(urlparse.parse_qsl(query))
         query.update(queries)
         query = urllib.urlencode(dict((to_utf8(key), to_utf8(value))
-                                  for key, value in query.iteritems()))
+                                  for key, value in query.items()))
 
         url = urlparse.urlunsplit((scheme, netloc, path, query, fragment))
 

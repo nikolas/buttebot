@@ -1,4 +1,7 @@
-import thread
+try:
+    import thread
+except ImportError:
+    import _thread as thread
 import traceback
 
 
@@ -74,7 +77,7 @@ def do_sieve(sieve, bot, input, func, type, args):
     try:
         return sieve(bot, input, func, type, args)
     except Exception:
-        print 'sieve error',
+        print('sieve error')
         traceback.print_exc()
         return None
 
